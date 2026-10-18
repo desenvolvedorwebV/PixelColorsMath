@@ -1,0 +1,21 @@
+{
+  "short_name": "PixelMath",
+  "name": "Pixel Math Color - Jogo de Pintura Matemática",
+  "icons": [
+    {
+      "src": "PixelMathColor.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "PixelMathColor.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./pixel_math_color_v3.html",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait"
+}
