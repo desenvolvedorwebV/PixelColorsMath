@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pixel Math Color - Jogo de Pintura Matemática</title>
+    
+    <!-- Configurações PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="PixelMathColor.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+        }
+
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .app-viewport {
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .bottom-nav-safe {
+            padding-bottom: max(0.5rem, var(--sab));
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .nav-item.active {
+            color: #38bdf8;
+        }
+        .nav-item.active i {
+            transform: translateY(-2px);
+            filter: drop-shadow(0 2px 8px rgba(56, 189, 248, 0.5));
+        }
+
+        #canvas-container {
+            touch-action: none;
+            cursor: grab;
+            background-image: 
+                linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+                linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        #canvas-container:active {
+            cursor: grabbing;
+        }
+
+        /* Power-Up Pulse Glow Effect */
+        @keyframes pulse-powerup {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.6); transform: scale(1); }
+            50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.9); transform: scale(1.03); }
+        }
+        .powerup-active-glow {
+            animation: pulse-powerup 1.5s infinite ease-in-out;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="app-viewport w-screen overflow-hidden flex flex-col justify-between select-none">
+
+    <!-- MAIN SPA SCREEN CONTAINER -->
+    <main id="app-container" class="flex-1 relative overflow-hidden w-full h-full">
+        
+        <!-- ==================== HOME SECTION ==================== -->
+        <section id="sec-home" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-5 no-scrollbar">
+            <!-- Header com Imagem de Ícone Local -->
+            <div class="flex justify-between items-center pt-2">
+                <div class="flex items-center space-x-3 h-10">
+                    <img src="PixelMathColor.png" alt="Ícone do Jogo" class="h-full aspect-square rounded-xl object-cover border border-slate-700/50 shadow-md shrink-0">
+                    
+                    <div class="flex flex-col justify-center h-full">
+                        <h1 class="text-2xl font-black tracking-tight leading-none text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-400 to-amber-400">Pixel Math Color</h1>
+                        <p class="text-xs text-slate-400 mt-1">Pinte resolvendo contas de cabeça!</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/50 shrink-0" style="display:none">
+                    <i class="fa-solid fa-graduation-cap text-amber-400 text-xs"></i>
+                    <span id="home-user-lvl" class="text-xs font-bold text-slate-200">Nível 1</span>
+                </div>
+            </div>
+
+            <!-- Resume Painting Hero Card -->
+            <div id="home-resume-card" class="hidden glass rounded-2xl p-4 relative overflow-hidden border border-sky-500/30">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl"></div>
+                <div class="flex items-center space-x-4">
+                    <canvas id="home-resume-canvas" class="w-20 h-20 rounded-xl bg-slate-900 border border-slate-700 object-contain shadow-md"></canvas>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-[10px] uppercase tracking-wider font-bold text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded-md border border-sky-800/50">Continuar Desafio</span>
+                        <h3 id="home-resume-title" class="font-bold text-base text-slate-100 truncate mt-1">Carregando...</h3>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mt-2">
+                            <div id="home-resume-bar" class="bg-gradient-to-r from-sky-500 to-indigo-500 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                        <p id="home-resume-percent" class="text-xs text-slate-400 mt-1">0% concluído</p>
+                    </div>
+                </div>
+                <button id="home-resume-btn" class="w-full mt-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-sky-500/20 active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play text-sm"></i>
+                    <span>Retomar Desenho</span>
+                </button>
+            </div>
+
+            <!-- Power-Up Highlight Inventory Status Banner -->
+            <div class="glass rounded-2xl p-4 border border-amber-500/30 bg-gradient-to-r from-slate-900 via-slate-800/80 to-amber-950/30">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-slate-950 flex items-center justify-center font-black text-lg shadow-md shadow-amber-500/20">
+                            <i class="fa-solid fa-bolt"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xs font-black uppercase text-amber-300 tracking-wider">Dica Reveladora</h3>
+                            <p class="text-[11px] text-slate-300">Destaque os quadrados por 1 min</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span id="home-powerup-count" class="text-xl font-black text-amber-400">1</span>
+                        <span class="text-[10px] text-slate-400 block font-semibold">uso(s) disp.</span>
+                    </div>
+                </div>
+                <!-- Progress bar to next power-up -->
+                <div class="space-y-1 pt-1">
+                    <div class="flex justify-between text-[10px] font-bold text-slate-400">
+                        <span>Progresso Para +1 Dica</span>
+                        <span id="home-powerup-progress-text" class="text-amber-400">0 / 500 contas</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-700/50">
+                        <div id="home-powerup-progress-bar" class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats Grid -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Concluídos</span>
+                        <i class="fa-solid fa-square-check text-emerald-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-completed-count" class="text-2xl font-black text-slate-100">0</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Resolvidas</span>
+                        <i class="fa-solid fa-calculator text-sky-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-total-equations" class="text-2xl font-black text-slate-100">0</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Precisão</span>
+                        <i class="fa-solid fa-bullseye text-rose-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-accuracy" class="text-2xl font-black text-slate-100">100%</span>
+                    </div>
+                </div>
+
+                <div class="glass-card p-3.5 rounded-2xl flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-400">
+                        <span class="text-xs font-medium">Tempo Acumulado</span>
+                        <i class="fa-solid fa-clock text-indigo-400"></i>
+                    </div>
+                    <div class="mt-2">
+                        <span id="stat-total-time" class="text-xl font-extrabold text-slate-100">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Stats Analytics Accordion -->
+            <div class="glass rounded-2xl overflow-hidden border border-slate-700/50">
+                <button id="accordion-performance-btn" class="w-full p-4 flex justify-between items-center text-left focus:outline-none hover:bg-slate-800/40 transition">
+                    <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-sky-400"></i> Desempenho
+                    </h2>
+                    <i id="accordion-chevron" class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-300"></i>
+                </button>
+                
+                <div id="accordion-performance-content" class="hidden p-4 pt-0 space-y-3 border-t border-slate-800/80">
+                    <div class="divide-y divide-slate-800 text-xs pt-2">
+                        <div class="py-2 flex justify-between items-center">
+                            <span class="text-slate-400">Categoria Favorita</span>
+                            <span id="stat-fav-cat" class="font-bold text-slate-200">Nenhuma</span>
+                        </div>
+                        <div class="py-2 flex justify-between items-center">
+                            <span class="text-slate-400">Power-Ups Utilizados</span>
+                            <span id="stat-powerups-used" class="font-bold text-amber-400">0</span>
+                        </div>
+                        <div class="py-2 flex justify-between items-center">
+                            <span class="text-slate-400">Erros Cometidos</span>
+                            <span id="stat-total-errors" class="font-bold text-rose-400">0</span>
+                        </div>
+                        <div class="py-2 flex justify-between items-center">
+                            <span class="text-slate-400">Progresso Geral do Jogo</span>
+                            <span id="stat-game-progress" class="font-bold text-sky-400">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div id="stat-game-progress-bar" class="bg-gradient-to-r from-emerald-500 to-sky-500 h-full w-0 transition-all duration-500"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center pt-4">
+                <p class="text-xs text-slate-500">Pixel Math Color v0.1</p>
+                <p class="text-[10px] text-slate-600">Treine matemática de forma divertida!</p>
+                <p class="text-[10px] text-slate-600">©2026 Viniciusav</p>
+            </div>
+        </section>
+
+        <!-- ==================== CATEGORIES SECTION ==================== -->
+        <section id="sec-categories" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100"><i class="fa-solid fa-layer-group text-lg"></i> Categorias</h1>
+            
+            <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Dynamically Populated -->
+            </div>
+
+            <div class="text-center pt-4">
+                <p class="text-xs text-slate-500">Pixel Math Color v0.1</p>
+                <p class="text-[10px] text-slate-600">Treine matemática de forma divertida!</p>
+                <p class="text-[10px] text-slate-600">©2026 Viniciusav</p>
+            </div>
+        </section>
+
+        <!-- ==================== CATEGORY DETAIL SUB-PAGE ==================== -->
+        <section id="sec-category-detail" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden bg-slate-900 z-10">
+            <div class="flex items-center space-x-3">
+                <button id="cat-detail-back-btn" class="w-9 h-9 glass rounded-full flex items-center justify-center text-slate-300 active:scale-95">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h1 id="cat-detail-title" class="text-lg font-bold text-slate-100">Categoria</h1>
+                    <p id="cat-detail-subtitle" class="text-xs text-slate-400">0 de 0 pintados</p>
+                </div>
+            </div>
+            
+            <div id="cat-detail-drawings-grid" class="grid grid-cols-2 gap-3">
+                <!-- Dynamically populated artwork cards -->
+            </div>
+        </section>
+
+        <!-- ==================== ALBUM SECTION ==================== -->
+        <section id="sec-album" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-4 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100"><i class="fa-solid fa-images text-lg"></i> Álbum de Conquistas</h1>
+            
+            <div class="flex bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
+                <button id="album-tab-completed" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-sky-400 bg-slate-700/80 shadow">
+                    Concluídos (<span id="album-completed-count">0</span>)
+                </button>
+                <button id="album-tab-progress" class="flex-1 py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+                    Em Andamento (<span id="album-progress-count">0</span>)
+                </button>
+            </div>
+
+            <div id="album-content-completed" class="grid grid-cols-2 gap-3">
+                <!-- Completed Artworks -->
+            </div>
+
+            <div id="album-content-progress" class="grid grid-cols-1 gap-3 hidden">
+                <!-- In Progress Artworks -->
+            </div>
+
+            <div class="text-center pt-4">
+                <p class="text-xs text-slate-500">Pixel Math Color v0.1</p>
+                <p class="text-[10px] text-slate-600">Treine matemática de forma divertida!</p>
+                <p class="text-[10px] text-slate-600">©2026 Viniciusav</p>
+            </div>
+        </section>
+
+        <!-- ==================== SETTINGS SECTION ==================== -->
+        <section id="sec-settings" class="spa-section absolute inset-0 overflow-y-auto p-4 pb-28 space-y-5 no-scrollbar hidden">
+            <h1 class="text-xl font-extrabold text-slate-100"><i class="fa-solid fa-gear text-lg"></i> Ajustes</h1>
+
+            <div class="glass rounded-2xl p-4 space-y-4">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Preferências do Jogo</h2>
+                
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-sky-500/20 flex items-center justify-center text-sky-400">
+                            <i class="fa-solid fa-volume-high"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">Efeitos Sonoros</p>
+                            <p class="text-[11px] text-slate-400">Sons de toque e respostas</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-sound" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                    </label>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                            <i class="fa-solid fa-mobile-screen-button"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-slate-200">Vibração (Haptic)</p>
+                            <p class="text-[11px] text-slate-400">Feedback tátil ao acertar/errar</p>
+                        </div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="setting-vibration" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass rounded-2xl p-4 space-y-3">
+                <h2 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Dados & Progresso</h2>
+                
+                <button id="btn-export-save" class="w-full bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-download text-sky-400"></i>
+                        <span class="text-sm">Exportar Progresso (JSON)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+
+                <button id="btn-import-save" class="w-full bg-slate-800 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-upload text-indigo-400"></i>
+                        <span class="text-sm">Importar Progresso (.json)</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                </button>
+                <input type="file" id="import-file-input" accept=".json" class="hidden">
+
+                <button id="btn-reset-save" class="w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-medium py-3 px-4 rounded-xl flex items-center justify-between active:scale-[0.99] transition">
+                    <div class="flex items-center space-x-3">
+                        <i class="fa-solid fa-trash-can text-rose-400"></i>
+                        <span class="text-sm">Reiniciar Todo o Progresso</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-rose-500/50"></i>
+                </button>
+            </div>
+
+            <div class="text-center pt-4">
+                <p class="text-xs text-slate-500">Pixel Math Color v0.1</p>
+                <p class="text-[10px] text-slate-600">Treine matemática de forma divertida!</p>
+                <p class="text-[10px] text-slate-600">©2026 Viniciusav</p>
+            </div>
+        </section>
+
+        <!-- ==================== PIXEL CANVAS GAMEPLAY SCREEN ==================== -->
+        <section id="sec-canvas-game" class="spa-section fixed inset-0 flex flex-col bg-slate-950 z-40 hidden">
+            <header class="glass py-2 px-3 flex items-center justify-between border-b border-slate-800 z-10">
+                <button id="game-back-btn" class="w-9 h-9 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 active:scale-95 shrink-0">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <div class="text-center flex-1 mx-2 min-w-0">
+                    <h2 id="game-drawing-title" class="text-sm font-bold text-slate-100 truncate">Desenho</h2>
+                    <div class="flex items-center justify-center space-x-2 text-[11px] text-slate-400">
+                        <span id="game-category-tag" class="text-sky-400 font-semibold truncate">Adições</span>
+                        <span>•</span>
+                        <span id="game-progress-text">0%</span>
+                        <span>•</span>
+                        <span id="game-timer">00:00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 shrink-0">
+                    <button id="game-hint-btn" class="relative px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 border border-amber-300/80 text-xs font-black flex items-center space-x-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition">
+                        <i class="fa-solid fa-bolt text-sm"></i>
+                        <span id="powerup-btn-label">REVELAR 1 MIN</span>
+                        <span id="powerup-badge-count" class="bg-slate-950 text-amber-400 text-[10px] px-1.5 py-0.2 rounded-full border border-amber-500/50 font-bold ml-1">1</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 text-center flex items-center justify-between">
+                <div id="active-color-badge" class="inline-flex items-center px-3 py-1 rounded-full border border-slate-700 bg-slate-800 text-xs font-bold text-slate-100 space-x-2 shadow-inner">
+                    <div id="active-color-dot" class="w-3.5 h-3.5 rounded-full border border-black/30"></div>
+                    <span id="active-color-text">Selecione uma cor</span>
+                </div>
+                
+                <div id="powerup-status-bar" class="hidden text-xs font-black text-amber-400 flex items-center space-x-1 animate-pulse">
+                    <i class="fa-solid fa-eye"></i>
+                    <span>Destaque Ativo: <span id="powerup-active-timer">01:00</span></span>
+                </div>
+            </div>
+
+            <div id="canvas-container" class="flex-1 relative overflow-hidden flex items-center justify-center">
+                <canvas id="paint-canvas" class="shadow-2xl"></canvas>
+                
+                <div class="absolute right-3 bottom-3 flex flex-col space-y-2">
+                    <button id="btn-zoom-in" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                    <button id="btn-zoom-out" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <button id="btn-zoom-reset" class="w-10 h-10 rounded-full glass flex items-center justify-center text-slate-200 active:scale-95 shadow-lg">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+            </div>
+
+            <footer class="glass py-2.5 px-2 border-t border-slate-800 z-10 flex flex-col justify-center min-h-[90px] bottom-nav-safe">
+                <div id="color-palette-container" class="flex items-center space-x-2 overflow-x-auto px-2 no-scrollbar py-1">
+                    <!-- Dynamic Math Color Pills rendered here -->
+                </div>
+            </footer>
+        </section>
+
+    </main>
+
+    <!-- FIXED BOTTOM NAVIGATION BAR -->
+    <nav id="bottom-nav" class="glass border-t border-slate-800/80 py-2 px-3 flex justify-around items-center z-30 shrink-0 w-full bottom-nav-safe">
+        <button data-target="sec-home" class="nav-item active flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-house text-lg"></i>
+            <span class="text-[10px] font-medium">Início</span>
+        </button>
+        <button data-target="sec-categories" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-layer-group text-lg"></i>
+            <span class="text-[10px] font-medium">Categorias</span>
+        </button>
+        <button data-target="sec-album" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-images text-lg"></i>
+            <span class="text-[10px] font-medium">Álbum</span>
+        </button>
+        <button data-target="sec-settings" class="nav-item flex flex-col items-center justify-center space-y-1 w-16 text-slate-400 transition-all">
+            <i class="fa-solid fa-gear text-lg"></i>
+            <span class="text-[10px] font-medium">Ajustes</span>
+        </button>
+    </nav>
+
+    <!-- PWA INSTALL MODAL -->
+    <div id="pwa-install-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-sky-500/30 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative overflow-hidden">
+            <img src="PixelMathColor.png" alt="Ícone do Jogo" class="w-20 h-20 rounded-2xl mx-auto shadow-lg border border-slate-700 object-cover">
+
+            <div>
+                <h2 class="text-xl font-extrabold text-slate-100">Instalar Pixel Math Color</h2>
+                <p class="text-xs text-slate-300 mt-2">Instale o aplicativo no seu dispositivo para jogar em tela cheia e com acesso rápido!</p>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button id="pwa-btn-install" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold py-3 rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition">
+                    Instalar
+                </button>
+                <button id="pwa-btn-later" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs active:scale-95 transition">
+                    Talvez Depois
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NO POWERUP CHARGES MODAL -->
+    <div id="no-powerup-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-amber-500/40 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl text-center">
+            <div class="w-14 h-14 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto text-2xl border border-amber-500/40">
+                <i class="fa-solid fa-bolt-lightning"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-extrabold text-slate-100">Sem Dicas Disponíveis!</h3>
+                <p class="text-xs text-slate-300 mt-1">Você precisa resolver mais operações de cabeça para liberar o próximo Power-Up de Dica Reveladora.</p>
+            </div>
+            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
+                <div class="flex justify-between font-bold text-slate-400">
+                    <span>Progresso atual:</span>
+                    <span id="modal-powerup-progress-text" class="text-amber-400">0 / 500 contas</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                    <div id="modal-powerup-progress-bar" class="bg-amber-400 h-full w-0"></div>
+                </div>
+                <p id="modal-powerup-needed-text" class="text-[11px] text-slate-400 pt-1">Faltam 500 contas corretas.</p>
+            </div>
+            <button id="no-powerup-close-btn" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs active:scale-95 transition">
+                Entendido, Continuar Jogando
+            </button>
+        </div>
+    </div>
+
+    <!-- RESET CONFIRMATION MODAL -->
+    <div id="reset-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-slate-700/80 rounded-2xl max-w-sm w-full p-5 space-y-4 shadow-2xl">
+            <div class="text-center space-y-2">
+                <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-full flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-100">Reiniciar Progresso?</h3>
+                <p class="text-xs text-slate-400">Esta ação apagará todo o histórico de desenhos e estatísticas matemáticas.</p>
+            </div>
+            <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Digite <strong class="text-rose-400">RESET</strong> para confirmar:</label>
+                <input type="text" id="reset-input-confirm" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-center font-mono font-bold text-slate-100 uppercase focus:outline-none focus:border-rose-500" placeholder="RESET">
+            </div>
+            <div class="flex space-x-2">
+                <button id="reset-cancel-btn" class="flex-1 bg-slate-800 text-slate-300 font-semibold py-2.5 rounded-xl text-sm active:scale-95">Cancelar</button>
+                <button id="reset-confirm-btn" disabled class="flex-1 bg-rose-600 disabled:opacity-50 text-white font-semibold py-2.5 rounded-xl text-sm active:scale-95 transition">Resetar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONGRATULATIONS / COMPLETE ART MODAL -->
+    <div id="complete-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass border border-sky-500/30 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl relative overflow-hidden">
+            <div class="w-20 h-20 bg-gradient-to-tr from-amber-400 to-amber-200 text-slate-950 rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-lg shadow-amber-500/20 rotate-3">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-black text-slate-100">Fantástico!</h2>
+                <p id="complete-art-title" class="text-sm font-semibold text-sky-400 mt-1">Nome da Arte</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-xs">
+                <div>
+                    <span class="text-slate-500 block">Tempo Gasto</span>
+                    <strong id="complete-art-time" class="text-slate-200 text-sm">00:00</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">Precisão</span>
+                    <strong id="complete-art-acc" class="text-slate-200 text-sm">100%</strong>
+                </div>
+            </div>
+
+            <div class="space-y-2 pt-2">
+                <button id="complete-album-btn" class="w-full bg-gradient-to-r from-sky-500 to-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-sky-500/20 active:scale-95 transition">
+                    Ver no Álbum
+                </button>
+                <button id="complete-home-btn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs active:scale-95 transition">
+                    Voltar ao Início
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION CORE -->
+    <script>
+        /* ==========================================================================
+           0. PWA INSTALLATION & SERVICE WORKER LOGIC
+           ========================================================================== */
+        let deferredPrompt = null;
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('Falha ao registrar Service Worker:', err);
+                });
+            });
+        }
+
+        function isAppInstalled() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   window.navigator.standalone === true;
+        }
+
+        function checkPWAInstallation() {
+            if (isAppInstalled()) {
+                // Se já estiver instalado, fecha o modal se estiver aberto e inicia normalmente
+                document.getElementById('pwa-install-modal').classList.add('hidden');
+            } else {
+                // Se não estiver instalado, exibe o modal de instalação
+                document.getElementById('pwa-install-modal').classList.remove('hidden');
+            }
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        document.getElementById('pwa-btn-install').onclick = async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            }
+            document.getElementById('pwa-install-modal').classList.add('hidden');
+        };
+
+        document.getElementById('pwa-btn-later').onclick = () => {
+            document.getElementById('pwa-install-modal').classList.add('hidden');
+        };
+
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('pwa-install-modal').classList.add('hidden');
+        });
+
+
+        /* ==========================================================================
+           1. CATEGORIES DEFINITIONS
+           ========================================================================== */
+        const CATEGORIES = [
+            { id: "add-20", name: "Adições até 20", icon: "fa-plus" },
+            { id: "add-10", name: "Adições até 10", icon: "fa-calculator" },
+            { id: "sub-10", name: "Subtração Básica", icon: "fa-minus" },
+            { id: "multiplication", name: "Multiplicação (Tabuada)", icon: "fa-xmark" }
+        ];
+
+        /* ==========================================================================
+           2. MATH ARTWORKS REPOSITORY
+           ========================================================================== */
+        const ARTWORKS = [
+            {
+                id: "cat-angry-add20",
+                title: "Gatinho (Irritado)",
+                category: "add-20",
+                width: 16,
+                height: 16,
+                colorMap: {
+                    "black": { hex: "#111827", values: [6, 16], label: "Preto" },
+                    "orange": { hex: "#f97316", values: [5, 9, 11, 14], label: "Laranja" },
+                    "green": { hex: "#22c55e", values: [17], label: "Verde" },
+                    "bege": { hex: "#DDC9A8", values: [18], label: "Bege" },
+                    "pink": { hex: "#ec4899", values: [13], label: "Rosa" },
+                    "white": { hex: "#ffffff", values: [7, 10, 12], label: "Branco" }
+                },
+                grid: [
+                    ["4+8", "7+5", "9+3", "8+2", "6+4", "1+6", "2+5", "5+5", "6+1", "8+4", "3+9", "4+3", "4+6", "6+6", "7+5", "5+7"],
+                    ["2+8", "9+7", "3+3", "9+1", "1+9", "7+3", "5+7", "9+3", "6+1", "4+8", "3+4", "3+4", "8+2", "4+2", "7+9", "2+8"],
+                    ["5+2", "8+8", "7+2", "1+5", "3+9", "6+6", "1+6", "3+7", "6+4", "2+8", "9+1", "1+9", "7+9", "4+7", "2+4", "1+6"],
+                    ["4+8", "5+1", "5+9", "9+2", "4+2", "8+2", "7+5", "8+4", "2+5", "9+3", "4+3", "7+9", "3+6", "2+9", "5+1", "4+8"],
+                    ["5+7", "3+3", "8+6", "6+3", "7+7", "9+7", "4+2", "9+7", "8+8", "4+2", "9+7", "3+2", "1+4", "2+3", "1+5", "6+1"],
+                    ["8+2", "3+3", "6+5", "1+4", "4+1", "9+5", "7+4", "6+8", "5+6", "4+1", "3+2", "8+1", "8+6", "1+4", "2+4", "6+6"],
+                    ["8+8", "2+3", "5+4", "9+2", "9+5", "3+8", "9+5", "2+7", "8+1", "9+2", "4+7", "2+3", "5+9", "1+4", "9+5", "3+3"],
+                    ["5+1", "6+5", "5+9", "8+8", "2+4", "4+5", "7+4", "3+2", "2+9", "7+7", "3+6", "7+9", "8+8", "8+6", "6+3", "8+8"],
+                    ["9+7", "5+6", "6+8", "9+7", "8+9", "4+2", "1+8", "3+8", "9+2", "2+3", "7+9", "9+8", "1+5", "7+2", "4+1", "5+1"],
+                    ["1+5", "5+4", "2+7", "2+3", "9+5", "1+4", "6+8", "8+3", "4+1", "4+5", "1+4", "6+5", "4+7", "8+1", "5+9", "3+3"],
+                    ["4+2", "9+9", "9+9", "3+6", "1+8", "5+9", "4+7", "8+5", "7+6", "6+3", "3+2", "1+4", "4+1", "9+9", "9+9", "2+4"],
+                    ["9+7", "7+2", "9+9", "9+9", "7+7", "7+4", "2+3", "1+5", "2+4", "8+6", "5+6", "9+2", "9+9", "9+9", "3+2", "9+7"],
+                    ["5+5", "5+1", "2+9", "5+4", "3+8", "3+8", "4+2", "7+2", "5+9", "7+9", "3+2", "4+1", "3+2", "9+5", "1+5", "3+9"],
+                    ["3+7", "3+4", "8+8", "6+8", "4+5", "6+8", "8+6", "8+1", "6+8", "1+4", "7+7", "8+3", "4+1", "9+7", "7+3", "5+2"],
+                    ["2+5", "7+5", "2+8", "8+8", "9+7", "5+1", "9+7", "3+3", "7+9", "3+3", "4+2", "2+4", "4+2", "1+6", "5+2", "8+4"],
+                    ["8+4", "4+3", "9+3", "5+7", "9+1", "6+1", "2+5", "3+4", "4+6", "6+4", "6+6", "3+9", "5+5", "1+9", "3+7", "7+5"]
+                ]
+            }
+        ];
+
+        /* ==========================================================================
+           3. APPLICATION STATE & PERSISTENCE
+           ========================================================================== */
+        const SAVE_KEY = "pixel_math_color_save_v0_1";
+
+        let gameState = {
+            progress: {},
+            lastPlayedArtId: null,
+            powerupCharges: 1,
+            powerupOpProgress: 0,
+            stats: {
+                totalTimeSeconds: 0,
+                totalClicks: 0,
+                correctClicks: 0,
+                totalErrors: 0,
+                solvedEquations: 0,
+                powerupsUsed: 0
+            },
+            settings: {
+                sound: true,
+                vibration: true
+            }
+        };
+
+        function loadSaveData() {
+            try {
+                const raw = localStorage.getItem(SAVE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    gameState = { ...gameState, ...parsed };
+                    if (!gameState.progress) gameState.progress = {};
+                    if (gameState.powerupCharges === undefined) gameState.powerupCharges = 1;
+                    if (gameState.powerupOpProgress === undefined) gameState.powerupOpProgress = 0;
+                    if (!gameState.stats) gameState.stats = { totalTimeSeconds: 0, totalClicks: 0, correctClicks: 0, totalErrors: 0, solvedEquations: 0, powerupsUsed: 0 };
+                    if (!gameState.settings) gameState.settings = { sound: true, vibration: true };
+                }
+            } catch (e) {
+                console.error("Erro ao carregar dados salvos:", e);
+            }
+        }
+
+        function saveGameData() {
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            } catch (e) {
+                console.error("Erro ao salvar progresso:", e);
+            }
+        }
+
+        function evaluateMathExpr(expr) {
+            try {
+                const cleaned = expr.replace(/\s+/g, '');
+                const superscripts = {
+                    '⁰': 0, '¹': 1, '²': 2, '³': 3, '⁴': 4,
+                    '⁵': 5, '⁶': 6, '⁷': 7, '⁸': 8, '⁹': 9
+                };
+
+                const superChar = Object.keys(superscripts).find(char => cleaned.includes(char));
+                if (superChar) {
+                    const parts = cleaned.split(superChar);
+                    const base = parseFloat(parts[0]);
+                    const exponent = superscripts[superChar];
+                    return Math.pow(base, exponent);
+                }
+
+                if (cleaned.includes('+')) {
+                    const parts = cleaned.split('+');
+                    return parseFloat(parts[0]) + parseFloat(parts[1]);
+                } else if (cleaned.includes('-')) {
+                    const parts = cleaned.split('-');
+                    return parseFloat(parts[0]) - parseFloat(parts[1]);
+                } else if (cleaned.includes('*')) {
+                    const parts = cleaned.split('*');
+                    return parseFloat(parts[0]) * parseFloat(parts[1]);
+                } else if (cleaned.includes('x')) {
+                    const parts = cleaned.split('x');
+                    return parseFloat(parts[0]) * parseFloat(parts[1]);
+                } else if (cleaned.includes('/')) {
+                    const parts = cleaned.split('/');
+                    return parseFloat(parts[0]) / parseFloat(parts[1]);
+                } else if (cleaned.includes('÷')) {
+                    const parts = cleaned.split('÷');
+                    return parseFloat(parts[0]) / parseFloat(parts[1]);
+                } else if (cleaned.includes('^')) {
+                    const parts = cleaned.split('^');
+                    return Math.pow(parseFloat(parts[0]), parseFloat(parts[1]));
+                }
+
+                return parseFloat(cleaned);
+            } catch (e) {
+                return NaN;
+            }
+        }
+
+        function playSound(type) {
+            if (!gameState.settings.sound) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'pop') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.08);
+                } else if (type === 'powerup') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.25);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                }
+            } catch (e) {}
+        }
+
+        function triggerVibration() {
+            if (gameState.settings.vibration && navigator.vibrate) {
+                navigator.vibrate(20);
+            }
+        }
+
+        /* ==========================================================================
+           4. GAME CANVAS ENGINE & MATH CONTROLLER
+           ========================================================================== */
+        let currentArt = null;
+        let selectedColorKey = null;
+        let scale = 20;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let playTimerInterval = null;
+
+        let isHighlightActive = false;
+        let powerupTimeRemaining = 0;
+        let powerupTimerInterval = null;
+
+        const canvas = document.getElementById('paint-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvas-container');
+
+        function startPainting(artId) {
+            currentArt = ARTWORKS.find(a => a.id === artId);
+            if (!currentArt) return;
+
+            if (!gameState.progress[artId]) {
+                gameState.progress[artId] = {
+                    paintedPixels: {},
+                    completed: false,
+                    timeSpent: 0,
+                    completedCount: 0
+                };
+            }
+            gameState.lastPlayedArtId = artId;
+            saveGameData();
+
+            document.getElementById('game-drawing-title').innerText = currentArt.title;
+            const cat = CATEGORIES.find(c => c.id === currentArt.category);
+            document.getElementById('game-category-tag').innerText = cat ? cat.name : "Matemática";
+
+            showSection('sec-canvas-game');
+
+            deactivateHighlightPowerUp();
+
+            scale = Math.min(
+                Math.floor((container.clientWidth * 0.8) / currentArt.width),
+                Math.floor((container.clientHeight * 0.8) / currentArt.height)
+            );
+            scale = Math.max(scale, 20);
+            
+            panX = (container.clientWidth - currentArt.width * scale) / 2;
+            panY = (container.clientHeight - currentArt.height * scale) / 2;
+
+            selectedColorKey = Object.keys(currentArt.colorMap)[0];
+            refreshPalette();
+            updatePowerUpUI();
+            renderCanvas();
+            startTimer();
+        }
+
+        function activateHighlightPowerUp() {
+            if (isHighlightActive) return;
+
+            if (gameState.powerupCharges <= 0) {
+                document.getElementById('modal-powerup-progress-text').innerText = `${gameState.powerupOpProgress} / 500 contas`;
+                document.getElementById('modal-powerup-progress-bar').style.width = `${Math.floor((gameState.powerupOpProgress / 500) * 100)}%`;
+                document.getElementById('modal-powerup-needed-text').innerText = `Faltam ${500 - gameState.powerupOpProgress} contas corretas para o próximo Power-Up!`;
+                document.getElementById('no-powerup-modal').classList.remove('hidden');
+                return;
+            }
+
+            gameState.powerupCharges--;
+            gameState.stats.powerupsUsed = (gameState.stats.powerupsUsed || 0) + 1;
+            saveGameData();
+
+            isHighlightActive = true;
+            powerupTimeRemaining = 60;
+
+            playSound('powerup');
+            triggerVibration();
+
+            document.getElementById('powerup-status-bar').classList.remove('hidden');
+            document.getElementById('game-hint-btn').classList.add('powerup-active-glow');
+
+            updatePowerUpUI();
+            renderCanvas();
+
+            clearInterval(powerupTimerInterval);
+            powerupTimerInterval = setInterval(() => {
+                powerupTimeRemaining--;
+                const secStr = powerupTimeRemaining.toString().padStart(2, '0');
+                document.getElementById('powerup-active-timer').innerText = `00:${secStr}`;
+
+                if (powerupTimeRemaining <= 0) {
+                    deactivateHighlightPowerUp();
+                }
+            }, 1000);
+        }
+
+        function deactivateHighlightPowerUp() {
+            isHighlightActive = false;
+            powerupTimeRemaining = 0;
+            clearInterval(powerupTimerInterval);
+
+            document.getElementById('powerup-status-bar').classList.add('hidden');
+            document.getElementById('game-hint-btn').classList.remove('powerup-active-glow');
+
+            updatePowerUpUI();
+            renderCanvas();
+        }
+
+        function updatePowerUpUI() {
+            document.getElementById('powerup-badge-count').innerText = gameState.powerupCharges;
+            document.getElementById('home-powerup-count').innerText = gameState.powerupCharges;
+            
+            const pct = Math.floor((gameState.powerupOpProgress / 500) * 100);
+            document.getElementById('home-powerup-progress-text').innerText = `${gameState.powerupOpProgress} / 500 contas`;
+            document.getElementById('home-powerup-progress-bar').style.width = `${pct}%`;
+
+            const btnLabel = document.getElementById('powerup-btn-label');
+            if (isHighlightActive) {
+                btnLabel.innerText = "ATIVO 1 MIN";
+            } else {
+                btnLabel.innerText = "REVELAR 1 MIN";
+            }
+        }
+
+        function refreshPalette() {
+            if (!currentArt) return;
+            const artProg = gameState.progress[currentArt.id];
+            const remainingCounts = {};
+
+            Object.keys(currentArt.colorMap).forEach(key => {
+                remainingCounts[key] = 0;
+            });
+
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    const expr = currentArt.grid[r][c];
+                    const val = evaluateMathExpr(expr);
+                    const posKey = `${c},${r}`;
+
+                    if (!artProg.paintedPixels[posKey]) {
+                        Object.entries(currentArt.colorMap).forEach(([cKey, colorDef]) => {
+                            if (colorDef.values.includes(val)) {
+                                remainingCounts[cKey] = (remainingCounts[cKey] || 0) + 1;
+                            }
+                        });
+                    }
+                }
+            }
+
+            const paletteContainer = document.getElementById('color-palette-container');
+            paletteContainer.innerHTML = '';
+
+            const availableKeys = Object.keys(currentArt.colorMap).filter(k => remainingCounts[k] > 0);
+
+            if (availableKeys.length === 0) {
+                paletteContainer.innerHTML = `<span class="text-xs text-emerald-400 font-bold px-4 py-2"><i class="fa-solid fa-check-circle mr-1"></i> Todos os cálculos foram resolvidos!</span>`;
+                checkCompletion();
+                return;
+            }
+
+            if (!selectedColorKey || remainingCounts[selectedColorKey] === 0) {
+                selectedColorKey = availableKeys[0];
+            }
+
+            Object.entries(currentArt.colorMap).forEach(([colorKey, colorDef]) => {
+                const count = remainingCounts[colorKey] || 0;
+                if (count === 0 && selectedColorKey !== colorKey) return;
+
+                const pill = document.createElement('button');
+                const isSelected = selectedColorKey === colorKey;
+
+                pill.className = `flex-shrink-0 flex items-center space-x-2 px-3.5 py-2 rounded-2xl border ${isSelected ? 'border-sky-400 ring-2 ring-sky-400/50 scale-105 bg-slate-800' : 'border-slate-700/80 bg-slate-900/90'} text-xs font-bold transition-all active:scale-95 shadow-md`;
+                
+                const formattedVals = colorDef.values.join(', ');
+
+                pill.innerHTML = `
+                    <div class="w-5 h-5 rounded-full shadow-inner border border-black/30 shrink-0" style="background-color: ${colorDef.hex}"></div>
+                    <div class="flex flex-col text-left">
+                        <span class="text-[11px] text-slate-100 font-extrabold leading-none">${colorDef.label}</span>
+                        <span class="text-[9px] text-sky-300 font-mono leading-none mt-1">[${formattedVals}]</span>
+                    </div>
+                    <span class="text-[10px] font-bold bg-slate-800 px-1.5 py-0.5 rounded-md border border-slate-700 text-slate-300 ml-1">${count}</span>
+                `;
+
+                pill.onclick = () => {
+                    selectedColorKey = colorKey;
+                    refreshPalette();
+                    updateActiveBadge();
+                    renderCanvas();
+                    triggerVibration();
+                };
+
+                paletteContainer.appendChild(pill);
+            });
+
+            updateActiveBadge();
+            updateProgressText();
+        }
+
+        function updateActiveBadge() {
+            if (!currentArt || !selectedColorKey) return;
+            const colorDef = currentArt.colorMap[selectedColorKey];
+            if (!colorDef) return;
+
+            document.getElementById('active-color-dot').style.backgroundColor = colorDef.hex;
+            document.getElementById('active-color-text').innerText = `${colorDef.label} [${colorDef.values.join(', ')}]`;
+        }
+
+        function updateProgressText() {
+            let total = currentArt.width * currentArt.height;
+            let painted = Object.keys(gameState.progress[currentArt.id].paintedPixels).length;
+
+            const percent = Math.floor((painted / total) * 100);
+            document.getElementById('game-progress-text').innerText = `${percent}%`;
+        }
+
+        function renderCanvas() {
+            if (!currentArt) return;
+
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.imageSmoothingEnabled = false;
+
+            const artProg = gameState.progress[currentArt.id];
+            const activeColorDef = selectedColorKey ? currentArt.colorMap[selectedColorKey] : null;
+
+            for (let r = 0; r < currentArt.height; r++) {
+                for (let c = 0; c < currentArt.width; c++) {
+                    const x = panX + c * scale;
+                    const y = panY + r * scale;
+
+                    if (x + scale < 0 || x > canvas.width || y + scale < 0 || y > canvas.height) continue;
+
+                    const expr = currentArt.grid[r][c];
+                    const val = evaluateMathExpr(expr);
+                    const key = `${c},${r}`;
+                    const paintedColorKey = artProg.paintedPixels[key];
+
+                    if (paintedColorKey) {
+                        const colorDef = currentArt.colorMap[paintedColorKey];
+                        ctx.fillStyle = colorDef ? colorDef.hex : "#FFFFFF";
+                        ctx.fillRect(x, y, scale, scale);
+                        ctx.strokeStyle = "rgba(0, 0, 0, 0.12)";
+                        ctx.strokeRect(x, y, scale, scale);
+                    } else {
+                        ctx.fillStyle = "#1e293b";
+                        ctx.fillRect(x, y, scale, scale);
+
+                        if (isHighlightActive && activeColorDef && activeColorDef.values.includes(val)) {
+                            ctx.fillStyle = "rgba(245, 158, 11, 0.45)";
+                            ctx.fillRect(x, y, scale, scale);
+                            ctx.strokeStyle = "#f59e0b";
+                            ctx.strokeRect(x, y, scale, scale);
+                        } else {
+                            ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                            ctx.strokeRect(x, y, scale, scale);
+                        }
+
+                        if (scale >= 14) {
+                            ctx.fillStyle = (isHighlightActive && activeColorDef && activeColorDef.values.includes(val)) ? "#fbbf24" : "#94a3b8";
+                            const fontSize = Math.max(7, Math.min(scale * 0.32, (scale / expr.length) * 1.5));
+                            ctx.font = `700 ${fontSize}px Inter, sans-serif`;
+                            ctx.textAlign = "center";
+                            ctx.textBaseline = "middle";
+                            ctx.fillText(expr, x + scale / 2, y + scale / 2);
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Interactive Canvas Touch & Pointer Event Handlers */
+        let pointerDown = false;
+        let activePointers = new Map();
+
+        container.addEventListener('pointerdown', (e) => {
+            activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            pointerDown = true;
+            isDragging = false;
+            dragStartX = e.clientX - panX;
+            dragStartY = e.clientY - panY;
+            if (e.pointerType === 'touch') e.preventDefault();
+        });
+
+        container.addEventListener('pointermove', (e) => {
+            if (!activePointers.has(e.pointerId)) return;
+            const startPos = activePointers.get(e.pointerId);
+
+            if (Math.hypot(e.clientX - startPos.x, e.clientY - startPos.y) > 8) {
+                isDragging = true;
+            }
+
+            if (pointerDown && isDragging && activePointers.size === 1) {
+                panX = e.clientX - dragStartX;
+                panY = e.clientY - dragStartY;
+                renderCanvas();
+            }
+        });
+
+        const handlePointerUpOrCancel = (e) => {
+            const startPos = activePointers.get(e.pointerId);
+            activePointers.delete(e.pointerId);
+
+            if (activePointers.size === 0) pointerDown = false;
+
+            if (!isDragging && startPos) {
+                handleCanvasClick(startPos.x, startPos.y);
+            }
+        };
+
+        container.addEventListener('pointerup', handlePointerUpOrCancel);
+        container.addEventListener('pointercancel', handlePointerUpOrCancel);
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            scale = Math.min(Math.max(10, scale * zoomFactor), 80);
+            renderCanvas();
+        }, { passive: false });
+
+        function handleCanvasClick(clientX, clientY) {
+            if (!currentArt || !selectedColorKey) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const col = Math.floor((x - panX) / scale);
+            const row = Math.floor((y - panY) / scale);
+
+            if (col < 0 || col >= currentArt.width || row < 0 || row >= currentArt.height) return;
+
+            const expr = currentArt.grid[row][col];
+            const val = evaluateMathExpr(expr);
+            const colorDef = currentArt.colorMap[selectedColorKey];
+            const posKey = `${col},${row}`;
+            const artProg = gameState.progress[currentArt.id];
+
+            gameState.stats.totalClicks++;
+
+            if (colorDef && colorDef.values.includes(val)) {
+                if (!artProg.paintedPixels[posKey]) {
+                    artProg.paintedPixels[posKey] = selectedColorKey;
+                    gameState.stats.correctClicks++;
+                    gameState.stats.solvedEquations++;
+
+                    gameState.powerupOpProgress++;
+                    if (gameState.powerupOpProgress >= 500) {
+                        gameState.powerupCharges++;
+                        gameState.powerupOpProgress = 0;
+                        playSound('powerup');
+                    }
+
+                    playSound('pop');
+                    triggerVibration();
+
+                    refreshPalette();
+                    updatePowerUpUI();
+                    renderCanvas();
+                    saveGameData();
+                }
+            } else {
+                gameState.stats.totalErrors++;
+                playSound('error');
+                triggerVibration();
+                saveGameData();
+            }
+        }
+
+        function startTimer() {
+            clearInterval(playTimerInterval);
+            playTimerInterval = setInterval(() => {
+                if (currentArt && gameState.progress[currentArt.id] && !gameState.progress[currentArt.id].completed) {
+                    gameState.progress[currentArt.id].timeSpent++;
+                    gameState.stats.totalTimeSeconds++;
+
+                    const sec = gameState.progress[currentArt.id].timeSpent;
+                    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+                    const s = (sec % 60).toString().padStart(2, '0');
+                    document.getElementById('game-timer').innerText = `${m}:${s}`;
+
+                    if (sec % 5 === 0) saveGameData();
+                }
+            }, 1000);
+        }
+
+        function checkCompletion() {
+            const artProg = gameState.progress[currentArt.id];
+            if (artProg.completed) return;
+
+            artProg.completed = true;
+            artProg.completedCount = (artProg.completedCount || 0) + 1;
+            deactivateHighlightPowerUp();
+            saveGameData();
+
+            playSound('win');
+            confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+
+            document.getElementById('complete-art-title').innerText = currentArt.title;
+            const sec = artProg.timeSpent;
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            document.getElementById('complete-art-time').innerText = `${m}m ${s}s`;
+
+            const acc = gameState.stats.totalClicks > 0 ? Math.round((gameState.stats.correctClicks / gameState.stats.totalClicks) * 100) : 100;
+            document.getElementById('complete-art-acc').innerText = `${acc}%`;
+
+            document.getElementById('complete-modal').classList.remove('hidden');
+        }
+
+        /* Zoom Controls */
+        document.getElementById('btn-zoom-in').onclick = () => { scale = Math.min(80, scale * 1.25); renderCanvas(); };
+        document.getElementById('btn-zoom-out').onclick = () => { scale = Math.max(10, scale * 0.8); renderCanvas(); };
+        document.getElementById('btn-zoom-reset').onclick = () => {
+            if (currentArt) {
+                scale = Math.min(
+                    Math.floor((container.clientWidth * 0.8) / currentArt.width),
+                    Math.floor((container.clientHeight * 0.8) / currentArt.height)
+                );
+                scale = Math.max(scale, 20);
+                panX = (container.clientWidth - currentArt.width * scale) / 2;
+                panY = (container.clientHeight - currentArt.height * scale) / 2;
+                renderCanvas();
+            }
+        };
+
+        /* POWER-UP BUTTON CLICK */
+        document.getElementById('game-hint-btn').onclick = () => {
+            activateHighlightPowerUp();
+        };
+
+        document.getElementById('no-powerup-close-btn').onclick = () => {
+            document.getElementById('no-powerup-modal').classList.add('hidden');
+        };
+
+        document.getElementById('game-back-btn').onclick = () => {
+            clearInterval(playTimerInterval);
+            deactivateHighlightPowerUp();
+            showSection('sec-home');
+        };
+
+        /* ==========================================================================
+           5. THUMBNAIL PREVIEW RENDERER
+           ========================================================================== */
+        function renderThumbnail(canvasEl, artwork) {
+            if (!canvasEl || !artwork) return;
+            const tCtx = canvasEl.getContext('2d');
+            canvasEl.width = artwork.width * 6;
+            canvasEl.height = artwork.height * 6;
+
+            tCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+            const artProg = gameState.progress[artwork.id];
+
+            for (let r = 0; r < artwork.height; r++) {
+                for (let c = 0; c < artwork.width; c++) {
+                    const posKey = `${c},${r}`;
+                    const paintedColorKey = artProg ? artProg.paintedPixels[posKey] : null;
+
+                    if (paintedColorKey) {
+                        const colorDef = artwork.colorMap[paintedColorKey];
+                        tCtx.fillStyle = colorDef ? colorDef.hex : "#FFFFFF";
+                    } else {
+                        tCtx.fillStyle = "#334155";
+                    }
+                    tCtx.fillRect(c * 6, r * 6, 6, 6);
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. SPA NAVIGATION & VIEW UPDATES
+           ========================================================================== */
+        function showSection(sectionId) {
+            document.querySelectorAll('.spa-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(sectionId).classList.remove('hidden');
+
+            const bottomNav = document.getElementById('bottom-nav');
+            if (sectionId === 'sec-canvas-game') {
+                bottomNav.classList.add('hidden');
+            } else {
+                bottomNav.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('data-target') === sectionId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            if (sectionId === 'sec-home') updateHomeDashboard();
+            if (sectionId === 'sec-categories') renderCategoriesView();
+            if (sectionId === 'sec-album') renderAlbumView();
+        }
+
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.onclick = () => showSection(item.getAttribute('data-target'));
+        });
+
+        /* HOME DASHBOARD UPDATE */
+        function updateHomeDashboard() {
+            let totalCompleted = 0;
+            let totalSolvedEquations = gameState.stats.solvedEquations || 0;
+
+            Object.keys(gameState.progress).forEach(artId => {
+                const prog = gameState.progress[artId];
+                if (prog.completed) totalCompleted++;
+            });
+
+            document.getElementById('stat-completed-count').innerText = totalCompleted;
+            document.getElementById('stat-total-equations').innerText = totalSolvedEquations;
+
+            const sec = gameState.stats.totalTimeSeconds || 0;
+            const hrs = Math.floor(sec / 3600);
+            const mins = Math.floor((sec % 3600) / 60);
+            const secs = sec % 60;
+            document.getElementById('stat-total-time').innerText = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+
+            const acc = gameState.stats.totalClicks > 0 ? Math.round((gameState.stats.correctClicks / gameState.stats.totalClicks) * 100) : 100;
+            document.getElementById('stat-accuracy').innerText = `${acc}%`;
+            document.getElementById('stat-total-errors').innerText = gameState.stats.totalErrors || 0;
+            document.getElementById('stat-powerups-used').innerText = gameState.stats.powerupsUsed || 0;
+
+            updatePowerUpUI();
+
+            const level = Math.floor(totalSolvedEquations / 25) + 1;
+            document.getElementById('home-user-lvl').innerText = `Nível ${level}`;
+
+            const totalGamePixels = ARTWORKS.reduce((sum, art) => sum + art.width * art.height, 0);
+            let totalPainted = 0;
+            Object.values(gameState.progress).forEach(p => {
+                totalPainted += Object.keys(p.paintedPixels || {}).length;
+            });
+
+            const gameProgPercent = totalGamePixels > 0 ? Math.floor((totalPainted / totalGamePixels) * 100) : 0;
+            document.getElementById('stat-game-progress').innerText = `${gameProgPercent}%`;
+            document.getElementById('stat-game-progress-bar').style.width = `${gameProgPercent}%`;
+
+            const catCounts = {};
+            ARTWORKS.forEach(art => {
+                const prog = gameState.progress[art.id];
+                if (prog && Object.keys(prog.paintedPixels).length > 0) {
+                    catCounts[art.category] = (catCounts[art.category] || 0) + Object.keys(prog.paintedPixels).length;
+                }
+            });
+            let favCat = "Nenhuma";
+            let maxCatVal = 0;
+            Object.entries(catCounts).forEach(([catId, count]) => {
+                if (count > maxCatVal) {
+                    maxCatVal = count;
+                    const catObj = CATEGORIES.find(c => c.id === catId);
+                    favCat = catObj ? catObj.name : catId;
+                }
+            });
+            document.getElementById('stat-fav-cat').innerText = favCat;
+
+            const resumeCard = document.getElementById('home-resume-card');
+            if (gameState.lastPlayedArtId) {
+                const lastArt = ARTWORKS.find(a => a.id === gameState.lastPlayedArtId);
+                const prog = gameState.progress[gameState.lastPlayedArtId];
+                if (lastArt && prog && !prog.completed) {
+                    resumeCard.classList.remove('hidden');
+                    document.getElementById('home-resume-title').innerText = lastArt.title;
+                    const painted = Object.keys(prog.paintedPixels).length;
+                    const total = lastArt.width * lastArt.height;
+                    const pct = Math.floor((painted / total) * 100);
+                    document.getElementById('home-resume-bar').style.width = `${pct}%`;
+                    document.getElementById('home-resume-percent').innerText = `${pct}% concluído`;
+                    renderThumbnail(document.getElementById('home-resume-canvas'), lastArt);
+
+                    document.getElementById('home-resume-btn').onclick = () => startPainting(lastArt.id);
+                } else {
+                    resumeCard.classList.add('hidden');
+                }
+            } else {
+                resumeCard.classList.add('hidden');
+            }
+        }
+
+        /* CATEGORIES VIEW */
+        function renderCategoriesView() {
+            const grid = document.getElementById('categories-grid');
+            grid.innerHTML = '';
+
+            CATEGORIES.forEach(cat => {
+                const catArts = ARTWORKS.filter(a => a.category === cat.id);
+                const completedInCat = catArts.filter(a => gameState.progress[a.id] && gameState.progress[a.id].completed).length;
+                const firstArt = catArts[0];
+
+                const card = document.createElement('div');
+                card.className = "glass rounded-2xl p-4 flex items-center space-x-4 cursor-pointer active:scale-[0.98] transition border border-slate-700/50";
+
+                card.innerHTML = `
+                    <canvas class="cat-preview-canvas w-16 h-16 rounded-xl bg-slate-900 border border-slate-700 object-contain shadow-md shrink-0"></canvas>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 text-sky-400 mb-1">
+                            <i class="fa-solid ${cat.icon} text-xs"></i>
+                            <span class="text-[11px] font-bold uppercase tracking-wider">${cat.name}</span>
+                        </div>
+                        <h3 class="font-bold text-base text-slate-100 truncate">${completedInCat} de ${catArts.length} pintados</h3>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-slate-500 text-sm"></i>
+                `;
+
+                card.onclick = () => openCategoryDetail(cat.id);
+                grid.appendChild(card);
+
+                if (firstArt) {
+                    renderThumbnail(card.querySelector('.cat-preview-canvas'), firstArt);
+                }
+            });
+        }
+
+        function openCategoryDetail(catId) {
+            const cat = CATEGORIES.find(c => c.id === catId);
+            const catArts = ARTWORKS.filter(a => a.category === catId);
+            const completedInCat = catArts.filter(a => gameState.progress[a.id] && gameState.progress[a.id].completed).length;
+
+            document.getElementById('cat-detail-title').innerText = cat ? cat.name : "Categoria";
+            document.getElementById('cat-detail-subtitle').innerText = `${completedInCat} de ${catArts.length} pintados`;
+
+            const grid = document.getElementById('cat-detail-drawings-grid');
+            grid.innerHTML = '';
+
+            catArts.forEach(art => {
+                const prog = gameState.progress[art.id] || { paintedPixels: {}, completed: false };
+                const painted = Object.keys(prog.paintedPixels).length;
+                const total = art.width * art.height;
+                const pct = Math.floor((painted / total) * 100);
+
+                const card = document.createElement('div');
+                card.className = "glass rounded-2xl p-3 flex flex-col justify-between space-y-3 border border-slate-700/50";
+
+                card.innerHTML = `
+                    <div class="relative bg-slate-900/80 rounded-xl p-2 flex items-center justify-center border border-slate-800">
+                        <canvas class="art-thumb-canvas w-24 h-24 object-contain"></canvas>
+                        ${prog.completed ? '<span class="absolute top-2 right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded-md shadow"><i class="fa-solid fa-check"></i></span>' : ''}
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-xs text-slate-200 truncate">${art.title}</h4>
+                        <p class="text-[10px] text-slate-400 mt-0.5">${art.width}x${art.height} • ${pct}%</p>
+                    </div>
+                    <button class="w-full bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 font-semibold py-1.5 rounded-xl text-xs active:scale-95 transition">
+                        ${prog.completed ? 'Pintar Novamente' : (painted > 0 ? 'Continuar' : 'Pintar')}
+                    </button>
+                `;
+
+                card.querySelector('button').onclick = () => startPainting(art.id);
+                grid.appendChild(card);
+
+                renderThumbnail(card.querySelector('.art-thumb-canvas'), art);
+            });
+
+            document.getElementById('sec-category-detail').classList.remove('hidden');
+        }
+
+        document.getElementById('cat-detail-back-btn').onclick = () => {
+            document.getElementById('sec-category-detail').classList.add('hidden');
+        };
+
+        /* ALBUM VIEW */
+        function renderAlbumView() {
+            const completedList = document.getElementById('album-content-completed');
+            const progressList = document.getElementById('album-content-progress');
+
+            completedList.innerHTML = '';
+            progressList.innerHTML = '';
+
+            let completedCount = 0;
+            let progressCount = 0;
+
+            ARTWORKS.forEach(art => {
+                const prog = gameState.progress[art.id];
+                if (!prog) return;
+
+                const painted = Object.keys(prog.paintedPixels || {}).length;
+                const total = art.width * art.height;
+
+                if (prog.completed) {
+                    completedCount++;
+                    const card = document.createElement('div');
+                    card.className = "glass rounded-2xl p-3 flex flex-col justify-between space-y-2 border border-slate-700/50";
+                    card.innerHTML = `
+                        <div class="bg-slate-900/80 rounded-xl p-2 flex items-center justify-center border border-slate-800">
+                            <canvas class="album-thumb-canvas w-24 h-24 object-contain"></canvas>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-xs text-slate-200 truncate">${art.title}</h4>
+                            <p class="text-[10px] text-slate-400 mt-0.5">Concluído ${prog.completedCount || 1}x</p>
+                        </div>
+                        <button class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-1.5 rounded-xl text-xs active:scale-95 transition">
+                            Pintar Novamente
+                        </button>
+                    `;
+                    card.querySelector('button').onclick = () => startPainting(art.id);
+                    completedList.appendChild(card);
+                    renderThumbnail(card.querySelector('.album-thumb-canvas'), art);
+                } else if (painted > 0) {
+                    progressCount++;
+                    const pct = Math.floor((painted / total) * 100);
+                    const card = document.createElement('div');
+                    card.className = "glass rounded-2xl p-3 flex items-center space-x-3 border border-slate-700/50";
+                    card.innerHTML = `
+                        <canvas class="album-thumb-canvas w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 object-contain shrink-0"></canvas>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-sm text-slate-200 truncate">${art.title}</h4>
+                            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                                <div class="bg-sky-500 h-full" style="width: ${pct}%"></div>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1">${pct}% concluído</p>
+                        </div>
+                        <button class="bg-sky-600 text-white font-semibold px-3 py-2 rounded-xl text-xs active:scale-95 transition shrink-0">
+                            Continuar
+                        </button>
+                    `;
+                    card.querySelector('button').onclick = () => startPainting(art.id);
+                    progressList.appendChild(card);
+                    renderThumbnail(card.querySelector('.album-thumb-canvas'), art);
+                }
+            });
+
+            document.getElementById('album-completed-count').innerText = completedCount;
+            document.getElementById('album-progress-count').innerText = progressCount;
+
+            if (completedCount === 0) {
+                completedList.innerHTML = `<p class="col-span-2 text-center text-xs text-slate-500 py-8">Nenhum desenho concluído ainda.</p>`;
+            }
+            if (progressCount === 0) {
+                progressList.innerHTML = `<p class="text-center text-xs text-slate-500 py-8">Nenhum desenho em andamento.</p>`;
+            }
+        }
+
+        document.getElementById('album-tab-completed').onclick = function() {
+            this.classList.add('text-sky-400', 'bg-slate-700/80', 'shadow');
+            this.classList.remove('text-slate-400');
+            document.getElementById('album-tab-progress').classList.remove('text-sky-400', 'bg-slate-700/80', 'shadow');
+            document.getElementById('album-tab-progress').classList.add('text-slate-400');
+
+            document.getElementById('album-content-completed').classList.remove('hidden');
+            document.getElementById('album-content-progress').classList.add('hidden');
+        };
+
+        document.getElementById('album-tab-progress').onclick = function() {
+            this.classList.add('text-sky-400', 'bg-slate-700/80', 'shadow');
+            this.classList.remove('text-slate-400');
+            document.getElementById('album-tab-completed').classList.remove('text-sky-400', 'bg-slate-700/80', 'shadow');
+            document.getElementById('album-tab-completed').classList.add('text-slate-400');
+
+            document.getElementById('album-content-progress').classList.remove('hidden');
+            document.getElementById('album-content-completed').classList.add('hidden');
+        };
+
+        /* ==========================================================================
+           7. SETTINGS & SAVE BACKUP
+           ========================================================================== */
+        document.getElementById('setting-sound').onchange = (e) => {
+            gameState.settings.sound = e.target.checked;
+            saveGameData();
+        };
+
+        document.getElementById('setting-vibration').onchange = (e) => {
+            gameState.settings.vibration = e.target.checked;
+            saveGameData();
+        };
+
+        document.getElementById('btn-export-save').onclick = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(gameState, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `pixel_math_save_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+        };
+
+        document.getElementById('btn-import-save').onclick = () => {
+            document.getElementById('import-file-input').click();
+        };
+
+        document.getElementById('import-file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (importedData && importedData.progress) {
+                        gameState = importedData;
+                        saveGameData();
+                        alert("Progresso importado com sucesso!");
+                        showSection('sec-home');
+                    } else {
+                        alert("Arquivo JSON inválido.");
+                    }
+                } catch (err) {
+                    alert("Erro ao ler o arquivo JSON.");
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        /* Performance Accordion Toggle */
+        const accordionBtn = document.getElementById('accordion-performance-btn');
+        const accordionContent = document.getElementById('accordion-performance-content');
+        const accordionChevron = document.getElementById('accordion-chevron');
+
+        accordionBtn.onclick = () => {
+            const isHidden = accordionContent.classList.toggle('hidden');
+            if (isHidden) {
+                accordionChevron.classList.remove('rotate-180');
+            } else {
+                accordionChevron.classList.add('rotate-180');
+            }
+        };
+
+        /* Reset Modal */
+        const resetModal = document.getElementById('reset-modal');
+        const resetInput = document.getElementById('reset-input-confirm');
+        const resetConfirmBtn = document.getElementById('reset-confirm-btn');
+
+        document.getElementById('btn-reset-save').onclick = () => {
+            resetInput.value = '';
+            resetConfirmBtn.disabled = true;
+            resetModal.classList.remove('hidden');
+        };
+
+        resetInput.oninput = () => {
+            resetConfirmBtn.disabled = (resetInput.value.trim().toUpperCase() !== "RESET");
+        };
+
+        document.getElementById('reset-cancel-btn').onclick = () => resetModal.classList.add('hidden');
+
+        resetConfirmBtn.onclick = () => {
+            localStorage.removeItem(SAVE_KEY);
+            gameState = {
+                progress: {},
+                lastPlayedArtId: null,
+                powerupCharges: 1,
+                powerupOpProgress: 0,
+                stats: { totalTimeSeconds: 0, totalClicks: 0, correctClicks: 0, totalErrors: 0, solvedEquations: 0, powerupsUsed: 0 },
+                settings: { sound: true, vibration: true }
+            };
+            resetModal.classList.add('hidden');
+            showSection('sec-home');
+        };
+
+        /* Completion Modal Handlers */
+        document.getElementById('complete-album-btn').onclick = () => {
+            document.getElementById('complete-modal').classList.add('hidden');
+            showSection('sec-album');
+        };
+
+        document.getElementById('complete-home-btn').onclick = () => {
+            document.getElementById('complete-modal').classList.add('hidden');
+            showSection('sec-home');
+        };
+
+        /* ==========================================================================
+           8. INIT ON LOAD
+           ========================================================================== */
+        window.onload = function () {
+            loadSaveData();
+            showSection('sec-home');
+            checkPWAInstallation();
+        };
+    </script>
+</body>
+</html>
