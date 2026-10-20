@@ -1,9 +1,28 @@
-const CACHE_NAME = 'pixel-math-v1';
+const CACHE_NAME = 'pixel-math-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './PixelMathColor.png'
+  './PixelMathColor.png',
+  './vendor/confetti-1.6.0.min.js',
+  './vendor/fontawesome/css/all.min.css',
+  './vendor/fontawesome/webfonts/fa-brands-400.ttf',
+  './vendor/fontawesome/webfonts/fa-brands-400.woff2',
+  './vendor/fontawesome/webfonts/fa-regular-400.ttf',
+  './vendor/fontawesome/webfonts/fa-regular-400.woff2',
+  './vendor/fontawesome/webfonts/fa-solid-900.ttf',
+  './vendor/fontawesome/webfonts/fa-solid-900.woff2',
+  './vendor/fontawesome/webfonts/fa-v4compatibility.ttf',
+  './vendor/fontawesome/webfonts/fa-v4compatibility.woff2',
+  './vendor/inter/inter.css',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuBWYMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuDyYMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf',
+  './vendor/inter/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuOKfMZg.ttf',
+  './vendor/tailwind-3.4.17.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -20,7 +39,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key.startsWith('pixel-math-') && key !== CACHE_NAME) {
             return caches.delete(key);
           }
         })
