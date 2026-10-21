@@ -57,6 +57,7 @@ A proposta é simples: abrir, calcular e colorir, sem complicações!
 **Nome abreviado:** Pixel Math  
 **Categoria:** Jogo educativo · Puzzle · Pixel art  
 **Formato:** Progressive Web App (PWA)
+**Desenvolvedor:** Viniciusav
 
 ## 🚀 Em desenvolvimento
 
