@@ -1,8 +1,8 @@
 <div align="center">
 
-<img PixelMathColor.png" alt="Ícone do Pixel Color Math — um gatinho pixel art cercado por operações matemáticas" width="180" />
+<img src="PixelMathColor.png" alt="Ícone do Pixel Colors Math — um gatinho pixel art cercado por operações matemáticas" width="180" />
 
-# 🎨 PixelMathColor
+# 🎨 PixelColorsMath
 
 ### 🐱 Calcule, descubra as cores e dê vida aos pixels!
 
