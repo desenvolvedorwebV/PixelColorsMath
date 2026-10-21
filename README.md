@@ -18,7 +18,7 @@
 
 E se cada conta fosse uma pincelada?
 
-<p style="text-align:justify">No **Pixel Colors Math**, pintar uma imagem vai além de escolher uma cor. Cada cor está associada a um número, e o caminho para descobri-la passa pela resolução de operações matemáticas.</p>
+No **Pixel Colors Math**, pintar uma imagem vai além de escolher uma cor. Cada cor está associada a um número, e o caminho para descobri-la passa pela resolução de operações matemáticas.
 
 É uma maneira leve e divertida de exercitar o raciocínio enquanto uma imagem em pixel art ganha forma, quadradinho por quadradinho.
 
