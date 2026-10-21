@@ -3,7 +3,7 @@ const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
-  './PixelMathColor.png',
+  './PixelColorsMath.png',
   './vendor/confetti-1.6.0.min.js',
   './vendor/fontawesome/css/all.min.css',
   './vendor/fontawesome/webfonts/fa-brands-400.ttf',
