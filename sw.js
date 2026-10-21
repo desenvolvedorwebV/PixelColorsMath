@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pixel-math-v2';
+const CACHE_NAME = 'pixel-math-v0.1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
