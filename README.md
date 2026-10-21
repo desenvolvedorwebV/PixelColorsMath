@@ -2,7 +2,7 @@
 
 <img src="PixelMathColor.png" alt="Ícone do Pixel Colors Math — um gatinho pixel art cercado por operações matemáticas" width="180" />
 
-# 🎨 PixelColorsMath
+# PixelColorsMath
 
 ### 🐱 Calcule, descubra as cores e dê vida aos pixels!
 
